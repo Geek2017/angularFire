@@ -202,6 +202,7 @@
         }
 
         if (typeof item == "object") {
+          console.log('save-1');
           ref = self._fRef.ref().push(self._parseObject(item), _addCb);
         } else {
           ref = self._fRef.ref().push(item, _addCb);
@@ -231,9 +232,11 @@
         }
 
         if (key) {
+          console.log('save-2');
           var obj = self._parseObject(self._object[key]);
           self._fRef.ref().child(key).set(obj, _saveCb);
         } else {
+          console.log('save-3');
           self._fRef.ref().set(self._parseObject(self._object), _saveCb);
         }
 
@@ -251,6 +254,7 @@
       // data has been successfully saved to the server.
       object.$set = function(newValue) {
         var deferred = self._q.defer();
+          console.log('save-4');
         self._fRef.ref().set(self._parseObject(newValue), function(err) {
           if (err) {
             deferred.reject(err);
@@ -272,6 +276,7 @@
       // has been successfully saved to the server.
       object.$update = function(newValue) {
         var deferred = self._q.defer();
+          console.log('save-5');
         self._fRef.ref().update(self._parseObject(newValue), function(err) {
           if (err) {
             deferred.reject(err);
@@ -472,6 +477,7 @@
         if (!_isPrimitive(val) && snapshot.getPriority() !== null) {
           val.$priority = snapshot.getPriority();
         }
+          console.log('load-1');
         self._updateModel(key, val);
       }
 
@@ -496,6 +502,7 @@
         self._index.splice(idx, 1);
 
         // Remove from local model.
+          console.log('load-2');
         self._updateModel(key, null);
       });
 
@@ -514,6 +521,7 @@
         // on a local primitive, then update that, otherwise switch to object
         // binding using child events.
         if (self._bound && value === null) {
+          console.log('save-6');
           var local = self._parseObject(self._parse(self._name)(self._scope));
           switch (typeof local) {
           // Primitive defaults.
@@ -533,11 +541,14 @@
         return value;
       }
 
+console.log('_getInitialValue');
+
       // We handle primitives and objects here together. There is no harm in having
       // child_* listeners attached; if the data suddenly changes between an object
       // and a primitive, the child_added/removed events will fire, and our data here
       // will get updated accordingly so we should be able to transition without issue
       self._fRef.on('value', function(snap) {
+console.log('onValue');
         // primitive handling
         var value = snap.val();
         if( _isPrimitive(value) ) {
@@ -614,6 +625,7 @@
 
     // Called whenever there is a remote change for a primitive value.
     _updatePrimitive: function(value) {
+console.log('_updatePrimitive',value);
       var self = this;
       self._timeout(function() {
         // Primitive values are represented as a special object
@@ -629,7 +641,9 @@
 
         // If there's an implicit binding, simply update the local scope model.
         if (self._bound) {
+          console.log('save-7');
           var local = self._parseObject(self._parse(self._name)(self._scope));
+console.log(local,value);
           if (!angular.equals(local, value)) {
             self._parse(self._name).assign(self._scope, value);
           }
@@ -666,7 +680,7 @@
       if( self._loaded && ['child_added', 'loaded', 'value'].indexOf(evt) > -1 ) {
         self._timeout(function() {
           var parsedValue = self._object.hasOwnProperty('$value')?
-            self._object.$value : self._parseObject(self._object);
+            self._object.$value : (console.log('save-8'), self._parseObject(self._object));
           switch(evt) {
           case 'loaded':
             callback(parsedValue);
@@ -729,16 +743,19 @@
       // If the local model is an object, call an update to set local values.
       var local = self._parse(name)(scope);
       if (local !== undefined && typeof local == "object") {
+          console.log('save-9');
         self._fRef.ref().update(self._parseObject(local));
       }
 
       // When the scope is destroyed, unbind automatically.
       scope.$on("$destroy", function() {
+console.log('$destroy');
         unbind();
       });
 
       // Once we receive the initial value, the promise will be resolved.
       self._object.$on('loaded', function(value) {
+console.log('loaded');
         self._timeout(function() {
           if(value === null && typeof defaultFn === 'function') {
             scope[name] = defaultFn();
@@ -746,6 +763,7 @@
           else {
             scope[name] = value;
           }
+console.log('loaded_timeout');
           deferred.resolve(unbind);
         });
       });
@@ -755,17 +773,20 @@
       var unbind = scope.$watch(name, function() {
         // If the new local value matches the current remote value, we don't
         // trigger a remote update.
+          console.log('save-10');
         var local = self._parseObject(self._parse(name)(scope));
         if (self._object.$value !== undefined &&
             angular.equals(local, self._object.$value)) {
+console.log('$value',local, self._object);
           return;
-        } else if (angular.equals(local, self._parseObject(self._object))) {
+        } else if (console.log('save-11'), angular.equals(local, self._parseObject(self._object))) {
           return;
         }
 
         // If the local model is undefined or the remote data hasn't been
         // loaded yet, don't update.
         if (local === undefined || !self._loaded) {
+console.log('local = undefined',local,self._object);
           return;
         }
 
